@@ -17,72 +17,120 @@ async function loadModel() {
 }
 loadModel();
 
-// Audio & music
+// 🎵 Audio
 const bgMusic = document.getElementById("bgMusic");
+const bossMusic = document.getElementById("bossMusic");
 const audioWin = document.getElementById("audioWin");
 const audioLose = document.getElementById("audioLose");
 const audioTie = document.getElementById("audioTie");
 
-// Vibration support
 function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
-// One-hot encoding
 function oneHot(move) {
-  if (move === 'rock') return [1, 0, 0];
-  if (move === 'paper') return [0, 1, 0];
-  if (move === 'scissors') return [0, 0, 1];
+  if (move === "rock") return [1, 0, 0];
+  if (move === "paper") return [0, 1, 0];
+  if (move === "scissors") return [0, 0, 1];
   return [0, 0, 0];
 }
 
 function counter(move) {
-  if (move === 'rock') return 'paper';
-  if (move === 'paper') return 'scissors';
-  if (move === 'scissors') return 'rock';
+  if (move === "rock") return "paper";
+  if (move === "paper") return "scissors";
+  return "rock";
 }
 
-// 😈 Evil AI logic
+function hardCounter(choice) {
+  return counter(choice);
+}
+
+function aiLog(msg) {
+  const consoleEl = document.getElementById("aiConsole");
+  consoleEl.classList.remove("hidden");
+  consoleEl.innerText += `\n${msg}`;
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
 function getComputerChoice() {
   const choices = ["rock", "paper", "scissors"];
 
-  // 🔥 Anti-win-streak cheat
+  // 🔒 Lock win streak
   if (winStreak >= 10 && lastHumanChoice) {
-    console.log("💀 Cheating activated: Preventing win streak");
+    aiLog("[AI] Win streak exceeded. Initiating shutdown.");
     return hardCounter(lastHumanChoice);
   }
 
-  // 🧠 Smart prediction
-  if (aiCheating && model && humanMoves.length >= 5) {
+  const smartChance = Math.min(roundCount / 15, 0.9);
+
+  // 🧠 Pattern traps (dual alternating)
+  if (humanMoves.length >= 4) {
+    const last4 = humanMoves.slice(-4);
+    const joined = last4.join("");
+
+    const spamPairs = [
+      ["rock", "paper"],
+      ["paper", "rock"],
+      ["rock", "scissors"],
+      ["scissors", "rock"],
+      ["paper", "scissors"],
+      ["scissors", "paper"],
+    ];
+
+    for (const [a, b] of spamPairs) {
+      const spam1 = a + b + a + b;
+      const spam2 = b + a + b + a;
+      if (joined === spam1 || joined === spam2) {
+        const expectedNext = humanMoves.at(-1) === a ? b : a;
+        aiLog(`[AI] Pattern detected: ${a}-${b} loop → countering ${expectedNext.toUpperCase()}`);
+        return hardCounter(expectedNext);
+      }
+    }
+  }
+
+  // Repetition / Alternating bait
+  if (roundCount >= 5 && lastHumanChoice && humanMoves.length >= 3) {
+    const last3 = humanMoves.slice(-3);
+    const allSame = last3.every(m => m === last3[0]);
+    const alternating = last3[0] !== last3[1] && last3[0] === last3[2];
+
+    if (alternating && Math.random() < 0.6) {
+      aiLog(`[AI] Alternating pattern baited → ${last3[2]} countered`);
+      return hardCounter(last3[2]);
+    }
+
+    if (allSame && Math.random() < 0.7) {
+      aiLog(`[AI] Repetition pattern baited → ${last3[0]} countered`);
+      return hardCounter(last3[0]);
+    }
+  }
+
+  // 🧠 Model prediction
+  if (Math.random() < smartChance && model && humanMoves.length >= 10) {
     let input = [];
-    for (let i = humanMoves.length - 5; i < humanMoves.length; i++) {
+    for (let i = humanMoves.length - 10; i < humanMoves.length; i++) {
       input.push(...oneHot(humanMoves[i]), ...oneHot(computerMoves[i]));
     }
 
     const inputTensor = tf.tensor2d([input]);
     const prediction = model.predict(inputTensor);
     const predictedIdx = prediction.argMax(1).dataSync()[0];
+    const predictionArray = prediction.dataSync();
+    const confidence = Math.max(...predictionArray).toFixed(2);
+    const predictedMove = choices[predictedIdx];
+
+    aiLog(`[AI] Prediction: ${predictedMove.toUpperCase()} (${confidence * 100}% confidence)`);
+    aiLog(`[AI] Playing counter: ${counter(predictedMove).toUpperCase()}`);
+
     prediction.dispose();
-
-    const predictedHumanMove = choices[predictedIdx];
-    return counter(predictedHumanMove);
+    return counter(predictedMove);
   }
 
-  // 🥷 Fallback cheat logic
-  if (aiCheating && roundCount >= 7) {
-    return hardCounter(lastHumanChoice);
-  }
-
-  return choices[Math.floor(Math.random() * choices.length)];
+  // 🎲 Fallback random
+  return choices[Math.floor(Math.random() * 3)];
 }
 
-function hardCounter(choice) {
-  if (choice === "rock") return "paper";
-  if (choice === "paper") return "scissors";
-  return "rock";
-}
-
-// 🔄 Game loop
+// 🎮 Game loop
 function playRound(humanChoice) {
   const result = document.getElementById("result");
   const score = document.getElementById("score");
@@ -94,6 +142,12 @@ function playRound(humanChoice) {
   humanMoves.push(humanChoice);
   computerMoves.push(computerChoice);
   roundCount++;
+
+  if (roundCount === 20) {
+    bgMusic.pause();
+    bossMusic.volume = 0.5;
+    bossMusic.play();
+  }
 
   setTimeout(() => {
     if (humanChoice === computerChoice) {
@@ -112,7 +166,14 @@ function playRound(humanChoice) {
       audioWin.play();
       vibrate([200, 100, 200]);
 
-      // 🧢 Fake encouragement
+      // 💥 NUKE FLASH
+      if (humanChoice === "nuke") {
+        const flash = document.getElementById("flash");
+        flash.className = "flash-overlay";
+        setTimeout(() => flash.className = "hidden", 600);
+        aiLog("[AI] 🔥 Critical hit detected. Recovering systems...");
+      }
+
       if (winStreak >= 7 && winStreak < 10) {
         const fakes = [
           "You're on fire! 🔥",
@@ -122,7 +183,6 @@ function playRound(humanChoice) {
         ];
         result.textContent += " 🤖 " + fakes[Math.floor(Math.random() * fakes.length)];
       }
-
     } else {
       result.textContent = `You lose! ${computerChoice} beats ${humanChoice}`;
       computerScore++;
@@ -130,7 +190,6 @@ function playRound(humanChoice) {
       audioLose.play();
       vibrate([400, 100, 100, 100]);
 
-      // 😏 Sarcasm
       if (roundCount >= 10) {
         const insults = [
           "Still trying? Cute.",
@@ -138,13 +197,12 @@ function playRound(humanChoice) {
           "I predicted that in my sleep.",
           "Strategy? Never heard of it.",
           "Let me know when you're serious.",
+          "TAUNT: That was too easy.",
+          "TAUNT: Predictable. Try harder.",
         ];
-        result.textContent += " 🤖 " + insults[Math.floor(Math.random() * insults.length)];
-      }
-
-      // 💣 Anti-streak shutdown
-      if (winStreak >= 10) {
-        result.textContent += " 💀 Streak ended. Order restored.";
+        const insult = insults[Math.floor(Math.random() * insults.length)];
+        result.textContent += " 🤖 " + insult;
+        aiLog(`[AI] ${insult}`);
       }
     }
 
@@ -154,13 +212,31 @@ function playRound(humanChoice) {
     if (roundCount >= 7 && !aiCheating) {
       aiStatus.textContent = "🤖 AI is learning... Prepare for a challenge!";
       aiCheating = true;
+
+      if (roundCount === 15) {
+        const awakening = document.getElementById("aiAwakening");
+        awakening.classList.remove("hidden");
+        awakening.classList.add("glitch-text");
+        document.getElementById("gameArea").classList.add("shake");
+
+        setTimeout(() => {
+          awakening.classList.remove("glitch-text");
+          document.getElementById("gameArea").classList.remove("shake");
+        }, 15000);
+      }
+
+      aiLog("[AI] Initializing memory...");
+      setTimeout(() => aiLog("[AI] Analyzing human pattern..."), 1000);
+      setTimeout(() => aiLog("[AI] Detecting alternating strategy..."), 2500);
+      setTimeout(() => aiLog("[AI] Counter strategy deployed."), 4000);
+      setTimeout(() => aiLog("[AI] Prediction accuracy: 97.2%"), 6000);
     }
 
     updateChart();
   }, 250);
 }
 
-// 📈 Chart setup
+// 📈 Stats Chart
 function updateChart() {
   if (!chart) {
     const ctx = document.getElementById("chart").getContext("2d");
@@ -182,7 +258,7 @@ function updateChart() {
   chart.update();
 }
 
-// 🚀 Game start
+// 🎮 Game start
 document.getElementById("startBtn").addEventListener("click", () => {
   document.getElementById("gameArea").classList.remove("hidden");
   document.getElementById("startBtn").classList.add("hidden");
@@ -190,7 +266,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   bgMusic.play();
 });
 
-// ⌨️ Keyboard shortcuts
+// ⌨️ Keyboard support
 window.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() === "r") playRound("rock");
   if (e.key.toLowerCase() === "p") playRound("paper");
@@ -199,7 +275,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("startBtn").click();
 });
 
-// 🖱️ Button click support
+// 🖱️ Click support
 document.querySelectorAll(".game-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const choice = btn.getAttribute("data-choice");

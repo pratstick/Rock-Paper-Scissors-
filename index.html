@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rock Paper Scissors</title>
+
+  <!-- CDN: TailwindCSS, Chart.js, TensorFlow.js, Confetti -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.12.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+  <!-- 8-bit font -->
   <link href="https://fonts.cdnfonts.com/css/press-start-2p" rel="stylesheet">
+
+  <!-- Styles -->
   <style>
     body {
       font-family: 'Press Start 2P', cursive;
@@ -54,34 +60,101 @@
         flex-direction: column;
       }
     }
+
+    .glitch-text {
+      position: relative;
+      color: #0ff;
+      text-shadow: 1px 0 red, -1px 0 blue;
+      animation: glitch 0.3s infinite;
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-1px, 1px); }
+      40% { transform: translate(-2px, -1px); }
+      60% { transform: translate(2px, 1px); }
+      80% { transform: translate(1px, -1px); }
+      100% { transform: translate(0); }
+    }
+
+    .shake {
+      animation: shake 0.3s infinite;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0px, 0px); }
+      25% { transform: translate(2px, -2px); }
+      50% { transform: translate(-2px, 2px); }
+      75% { transform: translate(2px, 2px); }
+      100% { transform: translate(-2px, -2px); }
+    }
+
+    .flash-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: red;
+      opacity: 0.8;
+      z-index: 1000;
+      pointer-events: none;
+      animation: flashOut 0.5s forwards;
+    }
+
+    @keyframes flashOut {
+      0% { opacity: 0.9; }
+      50% { opacity: 0.4; }
+      100% { opacity: 0; display: none; }
+    }
+
   </style>
 </head>
-<body class="flex flex-col items-center">
 
-  <h1 class="text-3xl sm:text-5xl text-green-400 drop-shadow-lg text-center mb-6">🎮 Rock Paper Scissors</h1>
+<body class="flex flex-col items-center">
+  <h1 class="text-3xl sm:text-5xl text-green-400 drop-shadow-lg text-center mb-6">
+    🎮 Rock Paper Scissors
+  </h1>
 
   <button id="startBtn" class="btn">START GAME (or press Enter)</button>
 
   <div id="gameArea" class="hidden flex flex-col items-center pixel-box mt-6 space-y-4">
+    <!-- Game buttons -->
     <div class="flex flex-wrap sm:flex-row game-controls justify-center">
       <button class="game-btn btn" data-choice="rock">🪨 ROCK (R)</button>
       <button class="game-btn btn" data-choice="paper">📄 PAPER (P)</button>
       <button class="game-btn btn" data-choice="scissors">✂️ SCISSORS (S)</button>
       <button class="game-btn btn" data-choice="nuke">💣 NUKE (N)</button>
     </div>
+
+    <!-- Game feedback -->
     <div id="result" class="text-green-300 text-sm sm:text-lg text-center"></div>
     <div id="score" class="text-pink-200 text-sm sm:text-lg">You: 0 | Computer: 0</div>
     <div id="streak" class="text-yellow-300 text-sm sm:text-lg"></div>
     <div id="ai-status" class="text-red-400 text-sm sm:text-lg font-bold"></div>
-    <canvas id="chart" width="250" height="200"></canvas>
+
+    <!-- Chart (reduced height) -->
+    <canvas id="chart" width="250" height="130"></canvas>
+
+    <!-- AI awakening -->
+    <div id="aiAwakening" class="hidden mt-4 text-2xl font-bold glitch-text">
+      👁️ THE MACHINE LEARNS...
+    </div>
+
+    <!-- AI console -->
+    <pre id="aiConsole" class="text-green-400 text-xs bg-black p-2 mt-3 hidden border border-lime-400 overflow-y-auto" style="height: 120px; font-family: monospace;">
+[AI] Awaiting data stream...
+    </pre>
   </div>
+  <div id="flash" class="hidden"></div>
+
 
   <!-- Audio -->
   <audio id="bgMusic" src="music/bgMusic.mp3" loop></audio>
   <audio id="audioWin" src="music/audioWin.mp3"></audio>
   <audio id="audioLose" src="music/audioLose.mp3"></audio>
   <audio id="audioTie" src="music/audioTie.mp3"></audio>
+  <audio id="bossMusic" src="music/bossTheme.mp3" loop></audio>
 
+  <!-- Game script -->
   <script src="script.js" defer></script>
 </body>
 </html>
