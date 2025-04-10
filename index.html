@@ -12,8 +12,7 @@
       font-family: 'Press Start 2P', cursive;
       background-color: #000;
       color: #fff;
-      min-height: 100vh;
-      padding: 2rem;
+      padding: 1.5rem;
     }
 
     .btn {
@@ -38,7 +37,6 @@
       padding: 1.5rem;
       border-radius: 1rem;
       box-shadow: 0 0 20px #fff4;
-      max-width: 100%;
     }
 
     canvas {
@@ -48,16 +46,22 @@
     .hidden {
       display: none;
     }
+
+    @media (max-width: 640px) {
+      .game-controls {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body class="flex flex-col items-center">
 
-  <h1 class="text-4xl sm:text-5xl text-green-400 drop-shadow-lg text-center mb-6">🎮 Rock Paper Scissors</h1>
+  <h1 class="text-3xl sm:text-5xl text-green-400 drop-shadow-lg text-center mb-6">🎮 Rock Paper Scissors</h1>
 
   <button id="startBtn" class="btn">START GAME (or press Enter)</button>
 
   <div id="gameArea" class="hidden flex flex-col items-center pixel-box mt-6 space-y-4">
-    <div class="flex flex-wrap justify-center">
+    <div class="flex flex-wrap sm:flex-row game-controls justify-center">
       <button class="game-btn btn" data-choice="rock">🪨 ROCK (R)</button>
       <button class="game-btn btn" data-choice="paper">📄 PAPER (P)</button>
       <button class="game-btn btn" data-choice="scissors">✂️ SCISSORS (S)</button>
@@ -70,14 +74,12 @@
     <canvas id="chart" width="250" height="200"></canvas>
   </div>
 
-  <canvas id="confetti-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
-
+  <!-- Audio -->
   <audio id="bgMusic" src="music/bgMusic.mp3" loop></audio>
   <audio id="audioWin" src="music/audioWin.mp3"></audio>
   <audio id="audioLose" src="music/audioLose.mp3"></audio>
   <audio id="audioTie" src="music/audioTie.mp3"></audio>
-  
 
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>

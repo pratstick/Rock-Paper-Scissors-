@@ -1,163 +1,131 @@
 let humanScore = 0;
 let computerScore = 0;
+let roundCount = 0;
 let winStreak = 0;
-let rounds = 0;
-let humanMoves = { rock: 0, paper: 0, scissors: 0 };
-let chart;
+let aiCheating = false;
+let lastHumanChoice = "";
+let chart = null;
 
-// Audio
 const bgMusic = document.getElementById("bgMusic");
 const audioWin = document.getElementById("audioWin");
 const audioLose = document.getElementById("audioLose");
 const audioTie = document.getElementById("audioTie");
 
-const startBtn = document.getElementById("startBtn");
-const gameArea = document.getElementById("gameArea");
-
-startBtn.addEventListener("click", startGame);
-
-document.querySelectorAll(".game-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const choice = btn.dataset.choice;
-    playRound(choice);
-  });
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") startGame();
-  if (!gameArea.classList.contains("hidden")) {
-    if (e.key.toLowerCase() === "r") playRound("rock");
-    else if (e.key.toLowerCase() === "p") playRound("paper");
-    else if (e.key.toLowerCase() === "s") playRound("scissors");
-    else if (e.key.toLowerCase() === "n") playRound("nuke");
-  }
-});
-
-function startGame() {
-  humanScore = 0;
-  computerScore = 0;
-  winStreak = 0;
-  rounds = 0;
-  humanMoves = { rock: 0, paper: 0, scissors: 0 };
-  startBtn.classList.add("hidden");
-  gameArea.classList.remove("hidden");
-  bgMusic.volume = 0.2;
-  bgMusic.play();
-  updateChart();
-  updateUI();
-}
-
-function playRound(humanChoice) {
-  if (!["rock", "paper", "scissors", "nuke"].includes(humanChoice)) return;
-  if (humanChoice !== "nuke") humanMoves[humanChoice]++;
-  const compChoice = getComputerChoice();
-
-  let resultText = '';
-  let win = false;
-
-  if (humanChoice === "nuke") {
-    resultText = "💥 You nuked the AI! You win the round!";
-    humanScore++;
-    win = true;
-  } else if (humanChoice === compChoice) {
-    resultText = `🤝 Tie! You both chose ${compChoice}`;
-    audioTie.play();
-    winStreak = 0;
-  } else if (
-    (humanChoice === 'rock' && compChoice === 'scissors') ||
-    (humanChoice === 'paper' && compChoice === 'rock') ||
-    (humanChoice === 'scissors' && compChoice === 'paper')
-  ) {
-    resultText = `✅ You win! ${humanChoice} beats ${compChoice}`;
-    audioWin.play();
-    humanScore++;
-    win = true;
-    winStreak++;
-  } else {
-    resultText = `❌ You lose! ${compChoice} beats ${humanChoice}`;
-    audioLose.play();
-    computerScore++;
-    winStreak = 0;
-  }
-
-  rounds++;
-  updateUI(resultText);
-  updateChart();
-  if (win) triggerConfetti();
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
 function getComputerChoice() {
-  if (rounds >= 7) {
-    const top = Object.entries(humanMoves).sort((a, b) => b[1] - a[1])[0][0];
-    if (top === 'rock') return 'paper';
-    if (top === 'paper') return 'scissors';
-    return 'rock';
+  const choices = ["rock", "paper", "scissors"];
+  if (aiCheating && roundCount >= 7) {
+    return hardCounter(lastHumanChoice);
   }
-  return ["rock", "paper", "scissors"][Math.floor(Math.random() * 3)];
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
-function updateUI(message = '') {
-  document.getElementById("result").textContent = message;
-  document.getElementById("score").textContent = `You: ${humanScore} | Computer: ${computerScore}`;
-  document.getElementById("streak").textContent = winStreak > 1 ? `🔥 Win Streak: ${winStreak}` : '';
-  document.getElementById("ai-status").textContent = rounds >= 7 ? "👾 AI Boss Mode Activated" : '';
+function hardCounter(choice) {
+  if (choice === "rock") return "paper";
+  if (choice === "paper") return "scissors";
+  return "rock";
+}
+
+function playRound(humanChoice) {
+  const result = document.getElementById("result");
+  const score = document.getElementById("score");
+  const streak = document.getElementById("streak");
+  const aiStatus = document.getElementById("ai-status");
+  const computerChoice = getComputerChoice();
+
+  roundCount++;
+  lastHumanChoice = humanChoice;
+
+  setTimeout(() => {
+    if (humanChoice === computerChoice) {
+      result.textContent = `It's a tie! Both chose ${humanChoice}`;
+      audioTie.play();
+      vibrate(100);
+    } else if (
+      (humanChoice === "rock" && computerChoice === "scissors") ||
+      (humanChoice === "paper" && computerChoice === "rock") ||
+      (humanChoice === "scissors" && computerChoice === "paper") ||
+      humanChoice === "nuke"
+    ) {
+      result.textContent = `You win! ${humanChoice} beats ${computerChoice}`;
+      humanScore++;
+      winStreak++;
+      audioWin.play();
+      vibrate([200, 100, 200]);
+    } else {
+      result.textContent = `You lose! ${computerChoice} beats ${humanChoice}`;
+      computerScore++;
+      winStreak = 0;
+      audioLose.play();
+      vibrate([400, 100, 100, 100]);
+    }
+
+    score.textContent = `You: ${humanScore} | Computer: ${computerScore}`;
+    streak.textContent = `🔥 Win Streak: ${winStreak}`;
+
+    if (roundCount >= 7 && !aiCheating) {
+      aiStatus.textContent = "🤖 AI is learning... Prepare for a challenge!";
+      aiCheating = true;
+    }
+
+    updateChart();
+  }, 250);
 }
 
 function updateChart() {
-  const ctx = document.getElementById("chart").getContext("2d");
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Rock', 'Paper', 'Scissors'],
-      datasets: [{
-        label: 'Your Move Usage',
-        data: [humanMoves.rock, humanMoves.paper, humanMoves.scissors],
-        backgroundColor: ['#f87171', '#60a5fa', '#fbbf24'],
-        borderColor: '#ffffff',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { ticks: { color: '#fff' }, beginAtZero: true },
-        x: { ticks: { color: '#fff' } }
-      }
-    }
-  });
-}
-
-// 🎉 Confetti Effect (simplified)
-function triggerConfetti() {
-  const canvas = document.getElementById('confetti-canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  const pieces = Array.from({ length: 150 }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    size: Math.random() * 8 + 2,
-    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-    dy: Math.random() * 4 + 1,
-    dx: Math.random() * 4 - 2
-  }));
-
-  let frame = 0;
-  function draw() {
-    if (frame > 50) return ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    pieces.forEach(p => {
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.size, p.size);
-      p.y += p.dy;
-      p.x += p.dx;
+  if (!chart) {
+    const ctx = document.getElementById("chart").getContext("2d");
+    chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "You",
+            data: [],
+            borderColor: "lime",
+            tension: 0.3,
+          },
+          {
+            label: "Computer",
+            data: [],
+            borderColor: "red",
+            tension: 0.3,
+          },
+        ],
+      },
     });
-    frame++;
-    requestAnimationFrame(draw);
   }
 
-  draw();
+  chart.data.labels.push(roundCount);
+  chart.data.datasets[0].data.push(humanScore);
+  chart.data.datasets[1].data.push(computerScore);
+  chart.update();
 }
+
+document.getElementById("startBtn").addEventListener("click", () => {
+  document.getElementById("gameArea").classList.remove("hidden");
+  document.getElementById("startBtn").classList.add("hidden");
+  bgMusic.volume = 0.3;
+  bgMusic.play();
+});
+
+// Keyboard shortcuts
+window.addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "r") playRound("rock");
+  if (e.key.toLowerCase() === "p") playRound("paper");
+  if (e.key.toLowerCase() === "s") playRound("scissors");
+  if (e.key.toLowerCase() === "n") playRound("nuke");
+  if (e.key === "Enter") document.getElementById("startBtn").click();
+});
+
+// Button click support
+document.querySelectorAll(".game-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const choice = btn.getAttribute("data-choice");
+    playRound(choice);
+  });
+});
