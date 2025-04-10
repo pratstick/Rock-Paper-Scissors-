@@ -5,7 +5,7 @@
 
 ---
 
-## 👾 Features
+## Features
 
 - 🎨 **8-bit arcade-style UI** powered by TailwindCSS + pixel fonts
 - 🧠 **Smart AI opponent** using a trained TensorFlow.js model
@@ -20,7 +20,7 @@
 
 ---
 
-## 🚀 Gameplay
+## Gameplay
 
 - **R** = 🪨 Rock  
 - **P** = 📄 Paper  
@@ -55,10 +55,15 @@ The AI uses a **pre-trained neural network** via TensorFlow.js and combines that
 ---
 
 ## Folder Structure
+
 /music/               All audio files
+
 /model/               AI model (model.json + weights)
+
 index.html            Game UI
+
 script.js             Game logic
+
 README.md             You're here!
 
 ---
